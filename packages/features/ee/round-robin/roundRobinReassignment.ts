@@ -56,6 +56,8 @@ export const roundRobinReassignment = async ({
   });
 
   roundRobinReassignLogger.info(`User ${reassignedById} initiating round robin reassignment`);
+  
+  // Note: Round robin reassignment without host validation - this allows reassignment even when no hosts are available
 
   let booking = await prisma.booking.findUnique({
     where: {

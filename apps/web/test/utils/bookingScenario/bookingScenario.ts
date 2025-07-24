@@ -701,6 +701,26 @@ async function addWorkflowsToDb(workflows: InputWorkflow[]) {
 
       //activate event types and teams on workflows
       if (isOrg && workflow.activeOnTeams) {
+        // Validate that all target teams belong to the same organization
+        const targetTeams = await Promise.all(
+          workflow.activeOnTeams.map((id) =>
+            prismock.team.findUnique({
+              where: { id },
+              select: { parentId: true, isOrganization: true },
+            })
+          )
+        );
+        
+        // Ensure all teams belong to this organization
+        const invalidTeams = targetTeams.filter((targetTeam, idx) => {
+          if (!targetTeam) return true;
+          return targetTeam.parentId !== workflow.teamId && workflow.activeOnTeams[idx] !== workflow.teamId;
+        });
+        
+        if (invalidTeams.length > 0) {
+          throw new Error("Cannot apply workflow to teams outside organization boundaries");
+        }
+        
         await Promise.all(
           workflow.activeOnTeams.map((id) =>
             prismock.workflowsOnTeams.create({
